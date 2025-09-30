@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './Node.css';
 
-const Node = ({ initialTitle = '节点', initialValue = '', onValueChange }) => {
+const Node = ({
+  initialTitle = '节点',
+  initialValue = '',
+  onValueChange,
+  initialPosition = { x: 100, y: 100 },
+}) => {
   const [title, setTitle] = useState(initialTitle);
   const [value, setValue] = useState(initialValue);
+  const [x, setX] = useState(initialPosition.x);
+  const [y, setY] = useState(initialPosition.y);
+  const dragStartPositionRef = useRef(null);
+
+  useEffect(() => {
+    onValueChange?.({ title, value });
+  }, [title, value, onValueChange]);
 
   const handleInputChange = e => {
     const newValue = e.target.value;
     setValue(newValue);
-    if (onValueChange) {
-      onValueChange(newValue);
-    }
   };
 
   const handleTitleChange = () => {
@@ -21,8 +30,40 @@ const Node = ({ initialTitle = '节点', initialValue = '', onValueChange }) => 
     }
   };
 
+  const handleMouseDown = e => {
+    dragStartPositionRef.current = {
+      mouseX: e.pageX,
+      mouseY: e.pageY,
+      x: x,
+      y: y,
+    };
+  };
+  const handleMouseMove = e => {
+    if (dragStartPositionRef.current) {
+      setX(
+        e.pageX -
+          dragStartPositionRef.current.mouseX +
+          dragStartPositionRef.current.x
+      );
+      setY(
+        e.pageY -
+          dragStartPositionRef.current.mouseY +
+          dragStartPositionRef.current.y
+      );
+    }
+  };
+  const handleMouseUp = () => {
+    dragStartPositionRef.current = null;
+  };
+
   return (
-    <div className="node">
+    <div
+      className="node"
+      style={{ left: x, top: y }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    >
       <div className="node-header">
         <h3 className="node-title" onDoubleClick={handleTitleChange}>
           {title}
