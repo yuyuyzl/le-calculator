@@ -1,11 +1,11 @@
 body{
   background: #1a1a1a;
+  margin: 0;
 }
 
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
   background: #1a1a1a;
   min-height: 100vh;
