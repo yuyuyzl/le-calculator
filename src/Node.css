@@ -1,0 +1,133 @@
+.node {
+  background: #2a2a2a;
+  border: 2px solid #4a4a4a;
+  border-radius: 8px;
+  min-width: 200px;
+  max-width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.node:hover {
+  border-color: #6a6a6a;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.node-header {
+  background: linear-gradient(135deg, #3a3a3a, #2a2a2a);
+  padding: 12px 16px;
+  border-bottom: 1px solid #4a4a4a;
+  position: relative;
+}
+
+.node-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #646cff, #535bf2, #646cff);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.node-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.node-content {
+  padding: 16px;
+  background: #2a2a2a;
+}
+
+.node-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.node-input:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+  background: #1e1e1e;
+}
+
+.node-input::placeholder {
+  color: #666;
+}
+
+.node-input:hover {
+  border-color: #6a6a6a;
+}
+
+/* 节点连接点样式 */
+.node::before,
+.node::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #4a4a4a;
+  border: 2px solid #2a2a2a;
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+}
+
+.node::before {
+  left: -6px;
+}
+
+.node::after {
+  right: -6px;
+}
+
+.node:hover::before,
+.node:hover::after {
+  background: #646cff;
+  border-color: #535bf2;
+  box-shadow: 0 0 8px rgba(100, 108, 255, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .node {
+    min-width: 180px;
+    max-width: 250px;
+  }
+  
+  .node-title {
+    font-size: 13px;
+  }
+  
+  .node-input {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
