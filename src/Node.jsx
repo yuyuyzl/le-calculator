@@ -5,6 +5,7 @@ const Node = ({
   initialTitle = '节点',
   initialValue = '',
   onValueChange,
+  onRemove,
   initialPosition = { x: 100, y: 100 },
 }) => {
   const [title, setTitle] = useState(initialTitle);
@@ -26,7 +27,14 @@ const Node = ({
     // prompt
     const newTitle = prompt('请输入节点标题');
     if (newTitle) {
-      setTitle(newTitle);
+      try {
+        eval(newTitle);
+      } catch (e) {
+        setTitle(newTitle);
+        return;
+      }
+
+      alert('节点标题不合法');
     }
   };
 
@@ -65,6 +73,7 @@ const Node = ({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onDoubleClick={e => {
+        handleMouseUp();
         e.stopPropagation();
       }}
     >
@@ -72,6 +81,9 @@ const Node = ({
         <h3 className="node-title" onDoubleClick={handleTitleChange}>
           {title}
         </h3>
+        <div className="node-remove" onClick={onRemove}>
+          +
+        </div>
       </div>
       <div className="node-content">
         <input
