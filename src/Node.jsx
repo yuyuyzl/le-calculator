@@ -63,6 +63,10 @@ const Node = ({
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onDoubleClick={e => {
+        e.stopPropagation();
+      }}
     >
       <div className="node-header">
         <h3 className="node-title" onDoubleClick={handleTitleChange}>
