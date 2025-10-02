@@ -34,9 +34,10 @@ function App() {
     }
   }, [historyNodes]);
   const dblClkPosRef = useRef(undefined);
-  const result = useMemo(() => {
+  const [result, error] = useMemo(() => {
     let _nodes = JSON.parse(JSON.stringify(nodes));
     let nodeConsts = {};
+    let nodeErrors = {};
     let dirty = true;
     let itCount = 0;
     try {
@@ -51,15 +52,16 @@ function App() {
               node.value = res;
               nodeConsts[node.title] = res;
             }
-          } catch {
+          } catch (e) {
+            nodeErrors[node.title] = e;
             // empty
           }
         });
       }
       console.log(itCount);
-      return nodeConsts;
+      return [nodeConsts, nodeErrors];
     } catch (e) {
-      return nodeConsts;
+      return [nodeConsts, nodeErrors];
     }
   }, [nodes]);
 
@@ -101,6 +103,7 @@ function App() {
           initialValue={node.value}
           initialPosition={dblClkPosRef.current}
           result={result}
+          error={error}
           onValueChange={value =>
             setNodes(nodes => {
               // 检查 value 是否与原 nodes[index] 完全一致，如果一致则不更新
@@ -122,9 +125,6 @@ function App() {
           }}
         />
       ))}
-      <div className="current-value">
-        <p>{/* 当前值: <span>{result}</span> */}</p>
-      </div>
     </div>
   );
 }

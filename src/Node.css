@@ -155,6 +155,12 @@
   text-align: center;
 }
 
+.node-result-error {
+  color: #ff4f4f!important;
+  font-size: 14px;
+  background: #1a1a1a;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .node {

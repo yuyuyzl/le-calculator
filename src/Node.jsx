@@ -8,6 +8,7 @@ const Node = ({
   onRemove,
   initialPosition = { x: 100, y: 100 },
   result,
+  error,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [value, setValue] = useState(initialValue);
@@ -102,6 +103,11 @@ const Node = ({
         <div className="node-result">
           <span>=</span>
           <span>{result?.[title]}</span>
+        </div>
+      )}
+      {error?.[title] && (
+        <div className="node-result">
+          <span className="node-result-error">{error?.[title].message}</span>
         </div>
       )}
     </div>
