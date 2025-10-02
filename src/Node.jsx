@@ -99,12 +99,14 @@ const Node = ({
           onMouseDown={e => e.stopPropagation()}
         />
       </div>
-      {result?.[title] !== +value && result?.[title] !== undefined && (
-        <div className="node-result">
-          <span>=</span>
-          <span>{result?.[title]}</span>
-        </div>
-      )}
+      {isNaN(+value) &&
+        result?.[title] !== +value &&
+        result?.[title] !== undefined && (
+          <div className="node-result">
+            <span>=</span>
+            <span>{result?.[title]}</span>
+          </div>
+        )}
       {error?.[title] && (
         <div className="node-result">
           <span className="node-result-error">{error?.[title].message}</span>
