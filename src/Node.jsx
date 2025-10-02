@@ -7,6 +7,7 @@ const Node = ({
   onValueChange,
   onRemove,
   initialPosition = { x: 100, y: 100 },
+  result,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [value, setValue] = useState(initialValue);
@@ -63,6 +64,7 @@ const Node = ({
   const handleMouseUp = () => {
     dragStartPositionRef.current = null;
   };
+  console.log(result);
 
   return (
     <div
@@ -93,6 +95,10 @@ const Node = ({
           onChange={handleInputChange}
           placeholder="输入值..."
         />
+      </div>
+      <div className="node-result">
+        <span>=</span>
+        <span>{result?.[title]}</span>
       </div>
     </div>
   );

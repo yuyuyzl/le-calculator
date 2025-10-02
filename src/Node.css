@@ -129,6 +129,33 @@
   box-shadow: 0 0 8px rgba(100, 108, 255, 0.4);
 }
 
+/* 节点结果样式 */
+.node-result {
+  background: #2a2a2a;
+  padding: 12px 16px;
+  border-top: 1px solid #4a4a4a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.node-result span:first-child {
+  color: #646cff;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.node-result span:last-child {
+  color: #ffffff;
+  font-size: 14px;
+  background: #1a1a1a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #4a4a4a;
+  min-width: 20px;
+  text-align: center;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .node {
@@ -143,5 +170,18 @@
   .node-input {
     font-size: 13px;
     padding: 8px 10px;
+  }
+  
+  .node-result {
+    padding: 10px 12px;
+  }
+  
+  .node-result span:first-child {
+    font-size: 14px;
+  }
+  
+  .node-result span:last-child {
+    font-size: 13px;
+    padding: 3px 6px;
   }
 }

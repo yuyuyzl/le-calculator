@@ -2,20 +2,31 @@ import { useEffect, useCallback } from 'react';
 import './App.css';
 import Node from './Node';
 import { useState, useMemo, useRef } from 'react';
-const deepCopy = obj => {
-  return JSON.parse(JSON.stringify(obj));
-};
 let id = 0;
 const getId = () => {
   return id++;
 };
+const scopeEval = function (source, scope = {}) {
+  // yes I NEED EVAL
+
+  // eslint-disable-next-line no-new-func
+  const result = Function(
+    ...Object.keys(scope),
+    `return eval(${JSON.stringify(source)})`
+  ).apply(
+    scope.this,
+    Object.keys(scope).map(k => scope[k])
+  );
+  return [scope, result];
+};
+
 function App() {
   const [nodes, setNodes] = useState(() => [
     { title: '基础伤害', value: '20', id: getId() },
   ]);
   const historyNodes = useRef([]);
   const saveHistoryNodes = useCallback(() => {
-    historyNodes.current = [...historyNodes.current, deepCopy(nodes)];
+    historyNodes.current = [...historyNodes.current, JSON.stringify(nodes)];
   }, [nodes]);
   const undo = useCallback(() => {
     if (historyNodes.current.length > 0) {
@@ -24,44 +35,32 @@ function App() {
   }, [historyNodes]);
   const dblClkPosRef = useRef(undefined);
   const result = useMemo(() => {
-    let res = null;
+    let _nodes = JSON.parse(JSON.stringify(nodes));
+    let nodeConsts = {};
+    let dirty = true;
+    let itCount = 0;
     try {
-      let _nodes = deepCopy(nodes);
-      let dirty = true;
-      let itCount = 0;
       while (itCount < 10000 && dirty) {
         itCount++;
         dirty = false;
         _nodes.forEach(node => {
           try {
-            node.value = eval(node.value);
+            const [, res] = scopeEval(node.value, nodeConsts);
+            if (res !== undefined && res !== node.value) {
+              dirty = true;
+              node.value = res;
+              nodeConsts[node.title] = res;
+            }
           } catch {
-            _nodes.forEach(o => {
-              if (isNaN(+o.value)) return;
-              if (node.value.includes(o.title)) {
-                node.value = node.value.replace(
-                  new RegExp(o.title, 'g'),
-                  o.value
-                );
-                o.used = true;
-                dirty = true;
-              }
-            });
+            // empty
           }
         });
       }
-      res = _nodes.reduce(
-        (acc, node) => acc + (node.used ? 0 : +node.value),
-        0
-      );
-      if (isNaN(res)) res = 'ERROR';
+      return nodeConsts;
     } catch (e) {
-      res = 'ERROR';
+      return nodeConsts;
     }
-    return res;
   }, [nodes]);
-
-  console.log(nodes);
 
   useEffect(() => {
     let debounceTimer;
@@ -73,7 +72,7 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = e => {
-      if (e.key === 'z' && e.ctrlKey) {
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
         undo();
       }
     };
@@ -87,7 +86,6 @@ function App() {
     <div
       className="App"
       onDoubleClick={e => {
-        console.log('dbl', e);
         dblClkPosRef.current = { x: e.pageX - 50, y: e.pageY - 30 };
         setNodes(n => {
           const id = getId();
@@ -101,6 +99,7 @@ function App() {
           initialTitle={node.title}
           initialValue={node.value}
           initialPosition={dblClkPosRef.current}
+          result={result}
           onValueChange={value =>
             setNodes(nodes => {
               // 检查 value 是否与原 nodes[index] 完全一致，如果一致则不更新
@@ -123,9 +122,7 @@ function App() {
         />
       ))}
       <div className="current-value">
-        <p>
-          当前值: <span>{result}</span>
-        </p>
+        <p>{/* 当前值: <span>{result}</span> */}</p>
       </div>
     </div>
   );
