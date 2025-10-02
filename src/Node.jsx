@@ -29,8 +29,9 @@ const Node = ({
     const newTitle = prompt('请输入节点标题');
     if (newTitle) {
       try {
-        eval(newTitle);
+        console.log(eval(newTitle));
       } catch (e) {
+        console.log(e);
         setTitle(newTitle);
         return;
       }
@@ -94,12 +95,15 @@ const Node = ({
           value={value}
           onChange={handleInputChange}
           placeholder="输入值..."
+          onMouseDown={e => e.stopPropagation()}
         />
       </div>
-      <div className="node-result">
-        <span>=</span>
-        <span>{result?.[title]}</span>
-      </div>
+      {result?.[title] !== +value && result?.[title] !== undefined && (
+        <div className="node-result">
+          <span>=</span>
+          <span>{result?.[title]}</span>
+        </div>
+      )}
     </div>
   );
 };

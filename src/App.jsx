@@ -56,6 +56,7 @@ function App() {
           }
         });
       }
+      console.log(itCount);
       return nodeConsts;
     } catch (e) {
       return nodeConsts;

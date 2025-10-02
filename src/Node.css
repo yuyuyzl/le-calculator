@@ -13,7 +13,6 @@
 .node:hover {
   border-color: #6a6a6a;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-  transform: translateY(-1px);
 }
 
 .node-header {
@@ -100,7 +99,7 @@
 }
 
 /* 节点连接点样式 */
-.node::before,
+/* .node::before,
 .node::after {
   content: '';
   position: absolute;
@@ -112,7 +111,7 @@
   top: 50%;
   transform: translateY(-50%);
   transition: all 0.2s ease;
-}
+} */
 
 .node::before {
   left: -6px;
@@ -122,12 +121,12 @@
   right: -6px;
 }
 
-.node:hover::before,
+/* .node:hover::before,
 .node:hover::after {
   background: #646cff;
   border-color: #535bf2;
   box-shadow: 0 0 8px rgba(100, 108, 255, 0.4);
-}
+} */
 
 /* 节点结果样式 */
 .node-result {
