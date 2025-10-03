@@ -61,6 +61,7 @@ function App() {
               dirty = true;
               node.value = res;
               nodeConsts[node.title] = res;
+              nodeErrors[node.title] = undefined;
             }
           } catch (e) {
             nodeErrors[node.title] = e;
