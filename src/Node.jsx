@@ -2,27 +2,32 @@ import React, { useState, useRef, useEffect } from 'react';
 import './Node.css';
 
 const Node = ({
-  initialTitle = '节点',
-  initialValue = '',
+  title,
+  value,
   onValueChange,
   onRemove,
   initialPosition = { x: 100, y: 100 },
   result,
   error,
 }) => {
-  const [title, setTitle] = useState(initialTitle);
-  const [value, setValue] = useState(initialValue);
+  // const [title, setTitle] = useState(initialTitle);
+  // const [value, setValue] = useState(initialValue);
   const [x, setX] = useState(initialPosition.x);
   const [y, setY] = useState(initialPosition.y);
   const dragStartPositionRef = useRef(null);
 
-  useEffect(() => {
-    onValueChange?.({ title, value });
-  }, [title, value, onValueChange]);
+  // useEffect(() => {
+  //   setValue(initialValue);
+  // }, [initialValue]);
+
+  // useEffect(() => {
+  //   setTitle(initialTitle);
+  // }, [initialTitle]);
 
   const handleInputChange = e => {
     const newValue = e.target.value;
-    setValue(newValue);
+    // setValue(newValue);
+    onValueChange?.({ title: title, value: newValue });
   };
 
   const handleTitleChange = () => {
@@ -33,7 +38,8 @@ const Node = ({
         console.log(eval(newTitle));
       } catch (e) {
         console.log(e);
-        setTitle(newTitle);
+        // setTitle(newTitle);
+        onValueChange?.({ title: newTitle, value: value });
         return;
       }
 
@@ -66,7 +72,8 @@ const Node = ({
   const handleMouseUp = () => {
     dragStartPositionRef.current = null;
   };
-  console.log(result);
+
+  console.log(title, value);
 
   return (
     <div

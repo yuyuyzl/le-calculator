@@ -25,12 +25,12 @@ function App() {
     { title: '基础伤害', value: '20', id: getId() },
   ]);
   const historyNodes = useRef([]);
-  const saveHistoryNodes = useCallback(() => {
-    historyNodes.current = [...historyNodes.current, JSON.stringify(nodes)];
-  }, [nodes]);
   const undo = useCallback(() => {
     if (historyNodes.current.length > 0) {
-      setNodes(historyNodes.current.pop());
+      historyNodes.current.pop();
+      setNodes(
+        JSON.parse(historyNodes.current[historyNodes.current.length - 1])
+      );
     }
   }, [historyNodes]);
   const dblClkPosRef = useRef(undefined);
@@ -66,17 +66,22 @@ function App() {
   }, [nodes]);
 
   useEffect(() => {
-    let debounceTimer;
-    debounceTimer = setTimeout(() => {
-      saveHistoryNodes();
-    }, 1000);
-    return () => clearTimeout(debounceTimer);
-  }, [nodes, saveHistoryNodes]);
+    if (
+      historyNodes.current[historyNodes.current.length - 1] ===
+      JSON.stringify(nodes)
+    ) {
+      return;
+    }
+    historyNodes.current = [...historyNodes.current, JSON.stringify(nodes)];
+    console.log(historyNodes.current);
+  }, [nodes]);
 
   useEffect(() => {
     const handleKeyDown = e => {
       if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
         undo();
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -84,6 +89,8 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [undo]);
+
+  console.log(nodes);
 
   return (
     <div
@@ -99,8 +106,8 @@ function App() {
       {nodes.map((node, index) => (
         <Node
           key={node.id}
-          initialTitle={node.title}
-          initialValue={node.value}
+          title={node.title}
+          value={node.value}
           initialPosition={dblClkPosRef.current}
           result={result}
           error={error}
@@ -114,8 +121,9 @@ function App() {
               ) {
                 return nodes;
               }
-              nodes[index] = { ...nodes[index], ...value };
-              return [...nodes];
+              const ret = [...nodes];
+              ret[index] = { ...nodes[index], ...value };
+              return ret;
             })
           }
           onRemove={() => {
