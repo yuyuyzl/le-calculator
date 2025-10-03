@@ -7,8 +7,6 @@ const getId = () => {
   return id++;
 };
 const scopeEval = function (source, scope = {}) {
-  // yes I NEED EVAL
-
   // eslint-disable-next-line no-new-func
   const result = Function(
     ...Object.keys(scope),
@@ -35,6 +33,7 @@ function App() {
     }
     return [{ title: '基础伤害', value: '20', id: getId() }];
   });
+  const [compareSnapshot, setCompareSnapshot] = useState();
   const historyNodes = useRef([]);
   const undo = useCallback(() => {
     if (historyNodes.current.length > 1) {
@@ -100,7 +99,50 @@ function App() {
     };
   }, [undo]);
 
-  console.log(nodes);
+  const onSave = () => {
+    const dataStr = JSON.stringify(nodes, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'nodes.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+  const onLoad = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const loadedNodes = JSON.parse(e.target.result);
+            setNodes(loadedNodes);
+          } catch (error) {
+            alert('文件格式错误，请选择有效的JSON文件');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
+
+  const onClear = () => {
+    localStorage.removeItem('nodes');
+    setNodes([]);
+  };
+
+  const onCompareSnapshot = () => {
+    setCompareSnapshot(o =>
+      o ? undefined : JSON.parse(JSON.stringify(result))
+    );
+  };
 
   return (
     <div
@@ -126,6 +168,7 @@ function App() {
           }
           result={result}
           error={error}
+          compareSnapshot={compareSnapshot}
           onValueChange={value =>
             setNodes(nodes => {
               // 检查 value 是否与原 nodes[index] 完全一致，如果一致则不更新
@@ -148,6 +191,25 @@ function App() {
           }}
         />
       ))}
+      <div className="toolbar">
+        <div className="toolbar-item" onClick={onLoad}>
+          载入
+        </div>
+        <div className="toolbar-item" onClick={onSave}>
+          保存
+        </div>
+        <div className="toolbar-item" onClick={onClear}>
+          清空
+        </div>
+        <div
+          className={
+            'toolbar-item' + (compareSnapshot ? ' toolbar-item-active' : '')
+          }
+          onClick={onCompareSnapshot}
+        >
+          快照
+        </div>
+      </div>
     </div>
   );
 }

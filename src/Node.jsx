@@ -9,6 +9,7 @@ const Node = ({
   initialPosition = { x: 100, y: 100 },
   result,
   error,
+  compareSnapshot,
 }) => {
   // const [title, setTitle] = useState(initialTitle);
   // const [value, setValue] = useState(initialValue);
@@ -88,7 +89,7 @@ const Node = ({
         e.stopPropagation();
       }}
     >
-      <div className="node-header">
+      <div className={`node-header ${error?.[title] ? 'error' : ''}`}>
         <h3 className="node-title" onDoubleClick={handleTitleChange}>
           {title}
         </h3>
@@ -111,7 +112,21 @@ const Node = ({
         result?.[title] !== undefined && (
           <div className="node-result">
             <span>=</span>
-            <span>{result?.[title]}</span>
+            <span className="node-result-num">{result?.[title]}</span>
+            {compareSnapshot &&
+              compareSnapshot?.[title] !== result?.[title] && (
+                <span className="node-result-compare">
+                  {result?.[title] > compareSnapshot?.[title] ? '↑' : '↓'}{' '}
+                  {result?.[title] - compareSnapshot?.[title]}
+                  {'/'}
+                  {Math.round(
+                    (Math.abs(result?.[title] - compareSnapshot?.[title]) /
+                      compareSnapshot?.[title]) *
+                      100
+                  )}
+                  %
+                </span>
+              )}
           </div>
         )}
       {error?.[title] && (

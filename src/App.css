@@ -106,25 +106,36 @@ body{
 }
 
 /* 当前值显示样式 */
-.current-value {
+.toolbar {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  top: 0px;
+  left: 0px;
   background: #2a2a2a;
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
-  padding: 16px;
-  margin-top: 20px;
+  display: flex;
+  flex-direction: row;
+  padding: 4px;
   user-select: none;
 }
 
-.current-value p {
+.toolbar-item {
   margin: 0;
   color: #ffffff;
   font-size: 16px;
+  padding: 4px 8px;
 }
 
-.current-value span {
+.toolbar-item:hover {
+  background: rgba(100, 108, 255, 0.2);
+  border-radius: 4px;
+}
+
+.toolbar-item-active {
+  background: rgba(100, 108, 255, 0.4)!important;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.toolbar-item b {
   color: #646cff;
   font-weight: 600;
   background: rgba(100, 108, 255, 0.1);

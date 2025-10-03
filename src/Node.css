@@ -33,9 +33,11 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #646cff, #535bf2, #646cff);
-  background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
+  background: #646cff;
+}
+
+.node-header.error::before {
+  background: #ff4f4f!important;
 }
 
 @keyframes shimmer {
@@ -138,13 +140,21 @@
   gap: 8px;
 }
 
-.node-result span:first-child {
+.node-result span {
   color: #646cff;
   font-size: 16px;
   font-weight: bold;
 }
 
-.node-result span:last-child {
+.node-result .node-result-compare {
+  color: #d59696;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 400;
+}
+
+.node-result .node-result-num {
   color: #ffffff;
   font-size: 14px;
   background: #1a1a1a;
@@ -154,6 +164,7 @@
   min-width: 20px;
   text-align: center;
 }
+
 
 .node-result-error {
   color: #ff4f4f!important;
