@@ -21,12 +21,23 @@ const scopeEval = function (source, scope = {}) {
 };
 
 function App() {
-  const [nodes, setNodes] = useState(() => [
-    { title: '基础伤害', value: '20', id: getId() },
-  ]);
+  const [nodes, setNodes] = useState(() => {
+    if (localStorage.getItem('nodes')) {
+      try {
+        const ret = JSON.parse(localStorage.getItem('nodes'));
+        ret.forEach(node => {
+          node.id = getId();
+        });
+        return ret;
+      } catch {
+        // empty
+      }
+    }
+    return [{ title: '基础伤害', value: '20', id: getId() }];
+  });
   const historyNodes = useRef([]);
   const undo = useCallback(() => {
-    if (historyNodes.current.length > 0) {
+    if (historyNodes.current.length > 1) {
       historyNodes.current.pop();
       setNodes(
         JSON.parse(historyNodes.current[historyNodes.current.length - 1])
@@ -58,7 +69,6 @@ function App() {
           }
         });
       }
-      console.log(itCount);
       return [nodeConsts, nodeErrors];
     } catch (e) {
       return [nodeConsts, nodeErrors];
@@ -73,7 +83,7 @@ function App() {
       return;
     }
     historyNodes.current = [...historyNodes.current, JSON.stringify(nodes)];
-    console.log(historyNodes.current);
+    localStorage.setItem('nodes', JSON.stringify(nodes));
   }, [nodes]);
 
   useEffect(() => {
@@ -108,7 +118,12 @@ function App() {
           key={node.id}
           title={node.title}
           value={node.value}
-          initialPosition={dblClkPosRef.current}
+          initialPosition={
+            dblClkPosRef.current || {
+              x: 100 + 240 * Math.floor(index / 5),
+              y: 120 * (index % 5) + 100,
+            }
+          }
           result={result}
           error={error}
           onValueChange={value =>
