@@ -17,7 +17,21 @@ const scopeEval = function (source, scope = {}) {
   );
   return [scope, result];
 };
+const extractUndefinedVariable = errorMessage => {
+  const patterns = [
+    /ReferenceError: ([^ ]+) is not defined/,
+    /([^ ]+) is not defined/,
+    /ReferenceError: Can't find variable: ([^ ]+)/,
+  ];
 
+  for (const pattern of patterns) {
+    const match = errorMessage.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+  return null;
+};
 function App() {
   const [nodes, setNodes] = useState(() => {
     if (localStorage.getItem('nodes')) {
@@ -44,15 +58,18 @@ function App() {
     }
   }, [historyNodes]);
   const dblClkPosRef = useRef(undefined);
-  const [result, error] = useMemo(() => {
+  const [result, error, rounds] = useMemo(() => {
     let _nodes = JSON.parse(JSON.stringify(nodes));
     let nodeConsts = {};
     let nodeErrors = {};
+    let nodeRounds = {};
     let dirty = true;
     let itCount = 0;
     try {
       while (itCount < 10000 && dirty) {
         itCount++;
+        let itIndex = 0;
+        let newConsts = {};
         dirty = false;
         _nodes.forEach(node => {
           try {
@@ -66,18 +83,21 @@ function App() {
               }
               dirty = true;
               node.value = res;
-              nodeConsts[node.title] = res;
+              newConsts[node.title] = res;
               nodeErrors[node.title] = undefined;
+              nodeRounds[node.title] = [itCount, itIndex];
+              itIndex++;
             }
           } catch (e) {
             nodeErrors[node.title] = e;
             // empty
           }
         });
+        nodeConsts = { ...nodeConsts, ...newConsts };
       }
-      return [nodeConsts, nodeErrors];
+      return [nodeConsts, nodeErrors, nodeRounds];
     } catch (e) {
-      return [nodeConsts, nodeErrors];
+      return [nodeConsts, nodeErrors, nodeRounds];
     }
   }, [nodes]);
 
@@ -152,7 +172,7 @@ function App() {
       o ? undefined : JSON.parse(JSON.stringify(result))
     );
   };
-
+  console.log(rounds);
   return (
     <div
       className="App"
@@ -174,9 +194,54 @@ function App() {
               y: 120 * (index % 5) + 100,
             }
           }
-          result={result}
-          error={error}
-          compareSnapshot={compareSnapshot}
+          result={result?.[node.title]}
+          error={error?.[node.title]}
+          rounds={rounds?.[node.title]}
+          compareSnapshot={compareSnapshot?.[node.title]}
+          onAutoSolve={({ x, y }) => {
+            console.log(x, y, result);
+            const tempResult = JSON.parse(JSON.stringify(result));
+            const toAdd = [];
+            let fixed = false;
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            while (!fixed && attempts < maxAttempts) {
+              attempts++;
+              try {
+                scopeEval(node.value, tempResult);
+                fixed = true;
+              } catch (e) {
+                if (e instanceof ReferenceError) {
+                  const undefinedVar = extractUndefinedVariable(e.message);
+                  if (undefinedVar) {
+                    // 给未定义变量一个默认值
+                    tempResult[undefinedVar] = 1;
+                    toAdd.push(undefinedVar);
+                  } else {
+                    console.error('无法解析的引用错误:', e.message);
+                    break;
+                  }
+                } else {
+                  console.error('其他错误:', e.message);
+                  break;
+                }
+              }
+            }
+
+            if (fixed) {
+              console.log(toAdd);
+              setNodes(nodes => {
+                const ret = [...nodes];
+                toAdd.forEach(item => {
+                  if (!ret.find(node => node.title === item)) {
+                    ret.push({ title: item, value: '1', id: getId() });
+                  }
+                });
+                return ret;
+              });
+            }
+          }}
           onValueChange={value =>
             setNodes(nodes => {
               // 检查 value 中的每个元素是否与 nodes[index] 中的对应元素一致，如果一致则不更新
@@ -220,6 +285,9 @@ function App() {
           onClick={onCompareSnapshot}
         >
           快照
+        </div>
+        <div className="toolbar-item" onClick={onClear}>
+          整理
         </div>
       </div>
     </div>

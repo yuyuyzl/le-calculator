@@ -10,6 +10,7 @@ const Node = ({
   result,
   error,
   compareSnapshot,
+  onAutoSolve,
 }) => {
   const [x, setX] = useState(initialPosition.x);
   const [y, setY] = useState(initialPosition.y);
@@ -75,8 +76,6 @@ const Node = ({
     dragStartPositionRef.current = null;
   };
 
-  console.log(node);
-
   return (
     <div
       className="node"
@@ -90,7 +89,7 @@ const Node = ({
         e.stopPropagation();
       }}
     >
-      <div className={`node-header ${error?.[title] ? 'error' : ''}`}>
+      <div className={`node-header ${error ? 'error' : ''}`}>
         <h3 className="node-title" onDoubleClick={handleTitleChange}>
           {title}
         </h3>
@@ -120,37 +119,38 @@ const Node = ({
           onChange={handleInputChange}
           placeholder="输入值..."
           onMouseDown={e => e.stopPropagation()}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.target.blur();
+              onAutoSolve?.({ x, y });
+            }
+          }}
         />
       </div>
       {(isNaN(+value) || node.percentage || node.addOne) &&
-        result?.[title] !== +value &&
-        result?.[title] !== undefined && (
+        result !== +value &&
+        result !== undefined && (
           <div className="node-result">
             <span>=</span>
             <span className="node-result-num">
-              {NumberUtils.formatNumber(result?.[title])}
+              {NumberUtils.formatNumber(result)}
             </span>
-            {compareSnapshot &&
-              compareSnapshot?.[title] !== result?.[title] && (
-                <span className="node-result-compare">
-                  {result?.[title] > compareSnapshot?.[title] ? '↑' : '↓'}{' '}
-                  {NumberUtils.formatNumber(
-                    result?.[title] - compareSnapshot?.[title]
-                  )}
-                  {'/'}
-                  {NumberUtils.formatNumber(
-                    (Math.abs(result?.[title] - compareSnapshot?.[title]) /
-                      compareSnapshot?.[title]) *
-                      100
-                  )}
-                  %
-                </span>
-              )}
+            {compareSnapshot && compareSnapshot !== result && (
+              <span className="node-result-compare">
+                {result > compareSnapshot ? '↑' : '↓'}{' '}
+                {NumberUtils.formatNumber(result - compareSnapshot)}
+                {'/'}
+                {NumberUtils.formatNumber(
+                  (Math.abs(result - compareSnapshot) / compareSnapshot) * 100
+                )}
+                %
+              </span>
+            )}
           </div>
         )}
-      {error?.[title] && (
+      {error && (
         <div className="node-result">
-          <span className="node-result-error">{error?.[title].message}</span>
+          <span className="node-result-error">{error.message}</span>
         </div>
       )}
     </div>
