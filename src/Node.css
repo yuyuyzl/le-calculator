@@ -24,6 +24,23 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+} 
+
+.node-header-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.node-header-right-item {
+  color: #ffffff;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+.node-header-right-item.active {
+  color: #9ca1ff;
 }
 
 .node-header::before {
@@ -152,6 +169,7 @@
   padding: 4px 8px;
   border-radius: 4px;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .node-result .node-result-num {

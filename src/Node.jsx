@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './Node.css';
+import { NumberUtils } from './utils/numberUtils';
 
 const Node = ({
-  title,
-  value,
+  node,
   onValueChange,
   onRemove,
   initialPosition = { x: 100, y: 100 },
@@ -11,24 +11,15 @@ const Node = ({
   error,
   compareSnapshot,
 }) => {
-  // const [title, setTitle] = useState(initialTitle);
-  // const [value, setValue] = useState(initialValue);
   const [x, setX] = useState(initialPosition.x);
   const [y, setY] = useState(initialPosition.y);
   const dragStartPositionRef = useRef(null);
-
-  // useEffect(() => {
-  //   setValue(initialValue);
-  // }, [initialValue]);
-
-  // useEffect(() => {
-  //   setTitle(initialTitle);
-  // }, [initialTitle]);
+  const { title, value } = node;
 
   const handleInputChange = e => {
     const newValue = e.target.value;
     // setValue(newValue);
-    onValueChange?.({ title: title, value: newValue });
+    onValueChange?.({ value: newValue });
   };
 
   const handleTitleChange = () => {
@@ -40,12 +31,22 @@ const Node = ({
       } catch (e) {
         console.log(e);
         // setTitle(newTitle);
-        onValueChange?.({ title: newTitle, value: value });
+        onValueChange?.({ title: newTitle });
         return;
       }
 
       alert('节点标题不合法');
     }
+  };
+
+  const handlePercentageChange = () => {
+    onValueChange?.({
+      percentage: node.percentage === true ? undefined : true,
+    });
+  };
+
+  const handleAddOne = () => {
+    onValueChange?.({ addOne: node.addOne === true ? undefined : true });
   };
 
   const handleMouseDown = e => {
@@ -74,7 +75,7 @@ const Node = ({
     dragStartPositionRef.current = null;
   };
 
-  console.log(title, value);
+  console.log(node);
 
   return (
     <div
@@ -93,8 +94,22 @@ const Node = ({
         <h3 className="node-title" onDoubleClick={handleTitleChange}>
           {title}
         </h3>
-        <div className="node-remove" onClick={onRemove}>
-          +
+        <div className="node-header-right">
+          <div
+            className={`node-header-right-item ${node.percentage ? 'active' : ''}`}
+            onClick={handlePercentageChange}
+          >
+            %
+          </div>
+          <div
+            className={`node-header-right-item ${node.addOne ? 'active' : ''}`}
+            onClick={handleAddOne}
+          >
+            +1
+          </div>
+          <div className="node-remove" onClick={onRemove}>
+            +
+          </div>
         </div>
       </div>
       <div className="node-content">
@@ -107,19 +122,23 @@ const Node = ({
           onMouseDown={e => e.stopPropagation()}
         />
       </div>
-      {isNaN(+value) &&
+      {(isNaN(+value) || node.percentage || node.addOne) &&
         result?.[title] !== +value &&
         result?.[title] !== undefined && (
           <div className="node-result">
             <span>=</span>
-            <span className="node-result-num">{result?.[title]}</span>
+            <span className="node-result-num">
+              {NumberUtils.formatNumber(result?.[title])}
+            </span>
             {compareSnapshot &&
               compareSnapshot?.[title] !== result?.[title] && (
                 <span className="node-result-compare">
                   {result?.[title] > compareSnapshot?.[title] ? '↑' : '↓'}{' '}
-                  {result?.[title] - compareSnapshot?.[title]}
+                  {NumberUtils.formatNumber(
+                    result?.[title] - compareSnapshot?.[title]
+                  )}
                   {'/'}
-                  {Math.round(
+                  {NumberUtils.formatNumber(
                     (Math.abs(result?.[title] - compareSnapshot?.[title]) /
                       compareSnapshot?.[title]) *
                       100

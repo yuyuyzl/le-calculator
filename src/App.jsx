@@ -56,8 +56,14 @@ function App() {
         dirty = false;
         _nodes.forEach(node => {
           try {
-            const [, res] = scopeEval(node.value, nodeConsts);
+            let [, res] = scopeEval(node.value, nodeConsts);
             if (res !== undefined && res !== node.value) {
+              if (node.percentage) {
+                res = res / 100;
+              }
+              if (node.addOne) {
+                res = res + 1;
+              }
               dirty = true;
               node.value = res;
               nodeConsts[node.title] = res;
@@ -74,6 +80,8 @@ function App() {
       return [nodeConsts, nodeErrors];
     }
   }, [nodes]);
+
+  console.log(result);
 
   useEffect(() => {
     if (
@@ -159,8 +167,7 @@ function App() {
       {nodes.map((node, index) => (
         <Node
           key={node.id}
-          title={node.title}
-          value={node.value}
+          node={node}
           initialPosition={
             dblClkPosRef.current || {
               x: 100 + 240 * Math.floor(index / 5),
@@ -172,16 +179,20 @@ function App() {
           compareSnapshot={compareSnapshot}
           onValueChange={value =>
             setNodes(nodes => {
-              // 检查 value 是否与原 nodes[index] 完全一致，如果一致则不更新
-              if (
-                nodes[index] &&
-                nodes[index].title === value.title &&
-                nodes[index].value === value.value
-              ) {
+              // 检查 value 中的每个元素是否与 nodes[index] 中的对应元素一致，如果一致则不更新
+              const isAllEqual = Object.keys(value).every(key => {
+                return nodes[index][key] === value[key];
+              });
+              if (isAllEqual) {
                 return nodes;
               }
               const ret = [...nodes];
               ret[index] = { ...nodes[index], ...value };
+              Object.keys(value).forEach(key => {
+                if (value[key] === undefined) {
+                  delete ret[index][key];
+                }
+              });
               return ret;
             })
           }
