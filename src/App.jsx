@@ -51,6 +51,7 @@ function App() {
   const [compareSnapshot, setCompareSnapshot] = useState();
   const [autoLayout, setAutoLayout] = useState(true);
   const historyNodes = useRef([]);
+  const mousePos = useRef({ x: 0, y: 0 });
   const undo = useCallback(() => {
     if (historyNodes.current.length > 1) {
       historyNodes.current.pop();
@@ -103,6 +104,7 @@ function App() {
   }, [nodes]);
 
   useEffect(() => {
+    localStorage.setItem('nodes', JSON.stringify(nodes));
     if (
       historyNodes.current[historyNodes.current.length - 1] ===
       JSON.stringify(nodes)
@@ -110,7 +112,6 @@ function App() {
       return;
     }
     historyNodes.current = [...historyNodes.current, JSON.stringify(nodes)];
-    localStorage.setItem('nodes', JSON.stringify(nodes));
   }, [nodes]);
 
   useEffect(() => {
@@ -126,6 +127,76 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [undo]);
+
+  useEffect(() => {
+    const handlePaste = e => {
+      // 获取当前光标
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        return;
+      }
+
+      // 阻止默认的粘贴行为
+      e.preventDefault();
+
+      // 获取剪贴板数据
+      const clipboardData = e.clipboardData || window.clipboardData;
+      const pastedData = clipboardData.getData('text');
+
+      console.log('粘贴的内容:', pastedData);
+
+      // 在这里处理粘贴的数据
+      // 例如：解析JSON数据并更新nodes
+      try {
+        const parsedData = JSON.parse(pastedData);
+        if (Array.isArray(parsedData)) {
+          setNodes(parsedData);
+          setNodePositions({});
+          setAutoLayout(true);
+        }
+        return;
+      } catch (error) {
+        console.log('粘贴的内容不是有效的JSON格式');
+      }
+      // 只按第一个 = 或 : 拆分
+      const match = pastedData.match(/([^=:]+)[=:](.*)/);
+      const title = match ? match[1].trim() : undefined;
+      const value = match ? match[2].trim() : undefined;
+      if (title && value) {
+        const id = getId();
+        setNodes(nodes => {
+          // 如果 nodes 中已经存在 title
+          if (nodes.find(node => node.title === title)) {
+            // 则更新 value
+            nodes.find(node => node.title === title).value = value;
+            return [...nodes];
+          }
+          let passed = false;
+          try {
+            eval(title);
+          } catch (e) {
+            // setTitle(newTitle);
+            passed = true;
+          }
+          if (passed) {
+            setNodePositions(o => ({
+              ...o,
+              [id]: { x: mousePos.current.x - 50, y: mousePos.current.y - 30 },
+            }));
+            return [...nodes, { title, value, id }];
+          }
+          return nodes;
+        });
+      }
+    };
+
+    // 在document上监听paste事件
+    document.addEventListener('paste', handlePaste);
+
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, []);
 
   const onSave = () => {
     const dataStr = JSON.stringify(nodes, null, 2);
@@ -176,6 +247,9 @@ function App() {
   return (
     <div
       className="App"
+      onMouseMove={e => {
+        mousePos.current = { x: e.pageX, y: e.pageY };
+      }}
       onDoubleClick={e => {
         const id = getId();
         setNodePositions(o => ({
@@ -308,7 +382,11 @@ function App() {
           ))}
         </div>
       )}
-      <div className="toolbar">
+      <div
+        className="toolbar"
+        onClick={e => e.stopPropagation()}
+        onDoubleClick={e => e.stopPropagation()}
+      >
         <div className="toolbar-item" onClick={onLoad}>
           载入
         </div>
