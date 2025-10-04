@@ -148,7 +148,8 @@ const Node = ({
           <div className="node-result">
             <span>=</span>
             <span className="node-result-num">
-              {NumberUtils.formatNumber(result)}
+              {NumberUtils.formatNumber(result * (node.percentage ? 100 : 1))}
+              {node.percentage ? '%' : ''}
             </span>
             {compareSnapshot && compareSnapshot !== result && (
               <span className="node-result-compare">
