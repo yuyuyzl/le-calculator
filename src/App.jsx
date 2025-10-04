@@ -47,7 +47,9 @@ function App() {
     }
     return [{ title: '基础伤害', value: '20', id: getId() }];
   });
+  const [nodePositions, setNodePositions] = useState({});
   const [compareSnapshot, setCompareSnapshot] = useState();
+  const [autoLayout, setAutoLayout] = useState(true);
   const historyNodes = useRef([]);
   const undo = useCallback(() => {
     if (historyNodes.current.length > 1) {
@@ -57,8 +59,7 @@ function App() {
       );
     }
   }, [historyNodes]);
-  const dblClkPosRef = useRef(undefined);
-  const [result, error, rounds] = useMemo(() => {
+  const [result, error, rounds, maxRound] = useMemo(() => {
     let _nodes = JSON.parse(JSON.stringify(nodes));
     let nodeConsts = {};
     let nodeErrors = {};
@@ -67,7 +68,6 @@ function App() {
     let itCount = 0;
     try {
       while (itCount < 10000 && dirty) {
-        itCount++;
         let itIndex = 0;
         let newConsts = {};
         dirty = false;
@@ -94,14 +94,13 @@ function App() {
           }
         });
         nodeConsts = { ...nodeConsts, ...newConsts };
+        itCount++;
       }
-      return [nodeConsts, nodeErrors, nodeRounds];
+      return [nodeConsts, nodeErrors, nodeRounds, itCount];
     } catch (e) {
-      return [nodeConsts, nodeErrors, nodeRounds];
+      return [nodeConsts, nodeErrors, nodeRounds, itCount];
     }
   }, [nodes]);
-
-  console.log(result);
 
   useEffect(() => {
     if (
@@ -157,6 +156,8 @@ function App() {
           }
         };
         reader.readAsText(file);
+        setNodePositions({});
+        setAutoLayout(true);
       }
     };
     input.click();
@@ -172,14 +173,19 @@ function App() {
       o ? undefined : JSON.parse(JSON.stringify(result))
     );
   };
-  console.log(rounds);
   return (
     <div
       className="App"
       onDoubleClick={e => {
-        dblClkPosRef.current = { x: e.pageX - 50, y: e.pageY - 30 };
+        const id = getId();
+        setNodePositions(o => ({
+          ...o,
+          [id]: {
+            x: e.pageX - 50,
+            y: e.pageY - 30,
+          },
+        }));
         setNodes(n => {
-          const id = getId();
           return [...n, { title: '新节点' + id, value: '1', id: id }];
         });
       }}
@@ -188,18 +194,19 @@ function App() {
         <Node
           key={node.id}
           node={node}
-          initialPosition={
-            dblClkPosRef.current || {
-              x: 100 + 240 * Math.floor(index / 5),
-              y: 120 * (index % 5) + 100,
-            }
+          x={nodePositions[node.id]?.x ?? 0}
+          y={nodePositions[node.id]?.y ?? 0}
+          setX={x =>
+            setNodePositions(o => ({ ...o, [node.id]: { ...o[node.id], x } }))
+          }
+          setY={y =>
+            setNodePositions(o => ({ ...o, [node.id]: { ...o[node.id], y } }))
           }
           result={result?.[node.title]}
           error={error?.[node.title]}
           rounds={rounds?.[node.title]}
           compareSnapshot={compareSnapshot?.[node.title]}
           onAutoSolve={({ x, y }) => {
-            console.log(x, y, result);
             const tempResult = JSON.parse(JSON.stringify(result));
             const toAdd = [];
             let fixed = false;
@@ -230,12 +237,20 @@ function App() {
             }
 
             if (fixed) {
-              console.log(toAdd);
               setNodes(nodes => {
                 const ret = [...nodes];
+                let addCount = 0;
                 toAdd.forEach(item => {
                   if (!ret.find(node => node.title === item)) {
-                    ret.push({ title: item, value: '1', id: getId() });
+                    const id = getId();
+                    ret.push({ title: item, value: '1', id: id });
+                    setNodePositions(o => ({
+                      ...o,
+                      [id]: {
+                        x: x + addCount * 50,
+                        y: y + 200 + addCount++ * 50,
+                      },
+                    }));
                   }
                 });
                 return ret;
@@ -268,6 +283,31 @@ function App() {
           }}
         />
       ))}
+      {autoLayout && (
+        <div className="nodes-grid">
+          {Array.from({ length: maxRound }).map((_, index) => (
+            <div className="nodes-row" key={index}>
+              {nodes
+                .filter(node => rounds?.[node.title]?.[0] === index)
+                .map(node => (
+                  <Node
+                    isAutoLayout={true}
+                    key={node.id}
+                    node={node}
+                    result={result?.[node.title]}
+                    error={error?.[node.title]}
+                    rounds={rounds?.[node.title]}
+                    compareSnapshot={compareSnapshot?.[node.title]}
+                    onAutoPosition={({ x, y }) => {
+                      setNodePositions(o => ({ ...o, [node.id]: { x, y } }));
+                      setAutoLayout(false);
+                    }}
+                  />
+                ))}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="toolbar">
         <div className="toolbar-item" onClick={onLoad}>
           载入
@@ -286,8 +326,8 @@ function App() {
         >
           快照
         </div>
-        <div className="toolbar-item" onClick={onClear}>
-          整理
+        <div className={'toolbar-item'} onClick={() => setAutoLayout(true)}>
+          自动布局
         </div>
       </div>
     </div>

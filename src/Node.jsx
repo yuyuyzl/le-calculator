@@ -1,19 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import './Node.css';
 import { NumberUtils } from './utils/numberUtils';
 
 const Node = ({
+  isAutoLayout,
   node,
   onValueChange,
   onRemove,
-  initialPosition = { x: 100, y: 100 },
   result,
   error,
   compareSnapshot,
   onAutoSolve,
+  x,
+  setX,
+  y,
+  setY,
+  onAutoPosition,
 }) => {
-  const [x, setX] = useState(initialPosition.x);
-  const [y, setY] = useState(initialPosition.y);
+  // const [x, setX] = useState(initialPosition.x);
+  // const [y, setY] = useState(initialPosition.y);
   const dragStartPositionRef = useRef(null);
   const { title, value } = node;
 
@@ -28,9 +33,8 @@ const Node = ({
     const newTitle = prompt('请输入节点标题');
     if (newTitle) {
       try {
-        console.log(eval(newTitle));
+        eval(newTitle);
       } catch (e) {
-        console.log(e);
         // setTitle(newTitle);
         onValueChange?.({ title: newTitle });
         return;
@@ -76,9 +80,20 @@ const Node = ({
     dragStartPositionRef.current = null;
   };
 
+  useLayoutEffect(() => {
+    if (isAutoLayout && node?.id) {
+      const nodeElement = document.getElementById(
+        'auto-layout-node-' + node.id
+      );
+      if (nodeElement) {
+        onAutoPosition?.(nodeElement.getBoundingClientRect());
+      }
+    }
+  }, [isAutoLayout, node.id]);
   return (
     <div
-      className="node"
+      className={`node ${isAutoLayout ? 'auto-layout' : ''}`}
+      id={isAutoLayout ? 'auto-layout-node-' + node.id : ''}
       style={{ left: x, top: y }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

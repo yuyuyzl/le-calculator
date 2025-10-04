@@ -9,10 +9,14 @@
   overflow: hidden;
   user-select: none;
 }
+.node.auto-layout {
+  position: unset!important;
+}
 
 .node:hover {
   border-color: #6a6a6a;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  z-index:10;
 }
 
 .node-header {
