@@ -11,9 +11,9 @@ const Node = ({
   error,
   compareSnapshot,
   onAutoSolve,
-  x,
+  x = 100,
   setX,
-  y,
+  y = 100,
   setY,
   onAutoPosition,
 }) => {

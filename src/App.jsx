@@ -103,6 +103,17 @@ function App() {
     }
   }, [nodes]);
 
+  const exportNodes = useCallback(() => {
+    return nodes
+      .map(node => ({
+        text: `${node.title}=${node.percentage ? '/*%*/' : ''}${node.addOne ? '/*+*/' : ''}${node.value}`,
+        order: rounds?.[node.title]?.[0],
+      }))
+      .sort((a, b) => -a.order + b.order)
+      .map(item => item.text)
+      .join('\n');
+  }, [nodes, rounds]);
+
   useEffect(() => {
     localStorage.setItem('nodes', JSON.stringify(nodes));
     if (
@@ -129,10 +140,27 @@ function App() {
   }, [undo]);
 
   useEffect(() => {
+    const handleCopy = () => {
+      // 获取当前光标
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0 && selection.direction !== 'none') {
+        console.log('有选中内容', selection);
+        return;
+      }
+      navigator.clipboard.writeText(exportNodes());
+    };
+    window.addEventListener('copy', handleCopy);
+    return () => {
+      window.removeEventListener('copy', handleCopy);
+    };
+  }, [exportNodes]);
+
+  useEffect(() => {
     const handlePaste = e => {
       // 获取当前光标
       const selection = window.getSelection();
-      if (selection.rangeCount > 0) {
+      if (selection.rangeCount > 0 && selection.direction !== 'none') {
+        console.log('有选中内容', selection);
         return;
       }
 
@@ -155,43 +183,55 @@ function App() {
           setAutoLayout(true);
         }
         return;
-      } catch (error) {
-        console.log('粘贴的内容不是有效的JSON格式');
+      } catch {
+        // empty
       }
       // 只按第一个 = 或 : 拆分
-      const match = pastedData.match(/([^=:]+)[=:](.*)/);
-      const title = match ? match[1].trim() : undefined;
-      let value = match ? match[2].trim() : undefined;
-      const percentage = pastedData.endsWith('%');
-      if (percentage) {
-        value = value.replace('%', '');
-      }
-      if (title && value) {
-        const id = getId();
-        setNodes(nodes => {
-          // 如果 nodes 中已经存在 title
-          if (nodes.find(node => node.title === title)) {
-            // 则更新 value
-            nodes.find(node => node.title === title).value = value;
-            return [...nodes];
-          }
-          let passed = false;
-          try {
-            eval(title);
-          } catch (e) {
-            // setTitle(newTitle);
-            passed = true;
-          }
-          if (passed) {
-            setNodePositions(o => ({
-              ...o,
-              [id]: { x: mousePos.current.x - 50, y: mousePos.current.y - 30 },
-            }));
-            return [...nodes, { title, value, id, percentage }];
-          }
-          return nodes;
-        });
-      }
+      const lines = pastedData.split('\n');
+      lines.forEach((line, index) => {
+        const match = line.match(/([^=:]+)[=:](.*)/);
+        const title = match ? match[1].trim() : undefined;
+        let value = match ? match[2].trim() : undefined;
+        const percentage = value?.endsWith('%') || value?.includes('/*%*/');
+        if (percentage) {
+          value = value.replace('/*%*/', '');
+          value = value.replace('%', '');
+        }
+        const addOne = value?.includes('/*+*/');
+        if (addOne) {
+          value = value.replace('/*+*/', '');
+        }
+        console.log(value);
+        if (title && value) {
+          const id = getId();
+          setNodes(nodes => {
+            // 如果 nodes 中已经存在 title
+            if (nodes.find(node => node.title === title)) {
+              // 则更新 value
+              nodes.find(node => node.title === title).value = value;
+              return [...nodes];
+            }
+            let passed = false;
+            try {
+              eval(title);
+            } catch (e) {
+              // setTitle(newTitle);
+              passed = true;
+            }
+            if (passed) {
+              setNodePositions(o => ({
+                ...o,
+                [id]: {
+                  x: mousePos.current.x - 50 + index * 50,
+                  y: mousePos.current.y - 30 + index * 50,
+                },
+              }));
+              return [...nodes, { title, value, id, percentage, addOne }];
+            }
+            return nodes;
+          });
+        }
+      });
     };
 
     // 在document上监听paste事件
@@ -226,13 +266,13 @@ function App() {
           try {
             const loadedNodes = JSON.parse(e.target.result);
             setNodes(loadedNodes);
+            setNodePositions({});
+            setAutoLayout(true);
           } catch (error) {
             alert('文件格式错误，请选择有效的JSON文件');
           }
         };
         reader.readAsText(file);
-        setNodePositions({});
-        setAutoLayout(true);
       }
     };
     input.click();
