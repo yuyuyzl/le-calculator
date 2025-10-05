@@ -127,7 +127,7 @@ function App() {
   const exportNodes = useCallback(() => {
     return nodes
       .map(node => ({
-        text: `${node.title}=${node.percentage ? '/*%*/' : ''}${node.addOne ? '/*+*/' : ''}${node.value}`,
+        text: `${node.title}=${node.value}${node.percentage ? ' //%' : ''}${node.addOne ? ' //+' : ''}`,
         order: rounds?.[node.title]?.[0],
       }))
       .sort((a, b) => -a.order + b.order)
@@ -208,16 +208,19 @@ function App() {
         const match = line.match(/([^=:]+)[=:](.*)/);
         const title = match ? match[1].trim() : undefined;
         let value = match ? match[2].trim() : undefined;
-        const percentage = value?.endsWith('%') || value?.includes('/*%*/');
+        const percentage =
+          value?.endsWith('%') ||
+          value?.includes('/*%*/') ||
+          value?.includes('//%');
         if (percentage) {
-          value = value.replace('/*%*/', '');
-          value = value.replace('%', '');
+          value = value.replace('/*%*/', '').replace('//%', '');
+          value = value.replace(/%$/, '');
         }
-        const addOne = value?.includes('/*+*/');
+        const addOne = value?.includes('/*+*/') || value?.includes('//+');
         if (addOne) {
-          value = value.replace('/*+*/', '');
+          value = value.replace('/*+*/', '').replace('//+', '');
         }
-        console.log(value);
+        value = value.trim();
         if (title && value) {
           const id = getId();
           setNodes(nodes => {

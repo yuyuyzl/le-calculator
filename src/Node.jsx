@@ -30,7 +30,7 @@ const Node = ({
 
   const handleTitleChange = () => {
     // prompt
-    const newTitle = prompt('请输入节点标题');
+    const newTitle = prompt('请输入节点标题', title);
     if (newTitle) {
       try {
         eval(newTitle);
@@ -105,7 +105,15 @@ const Node = ({
       }}
     >
       <div className={`node-header ${error ? 'error' : ''}`}>
-        <h3 className="node-title" onDoubleClick={handleTitleChange}>
+        <h3
+          className="node-title"
+          onDoubleClick={handleTitleChange}
+          onContextMenu={e => {
+            // 复制标题
+            navigator.clipboard.writeText(title);
+            e.preventDefault();
+          }}
+        >
           {title}
         </h3>
         <div className="node-header-right">
