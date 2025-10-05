@@ -411,7 +411,15 @@ function App() {
         <div className={'toolbar-item'} onClick={() => setAutoLayout(true)}>
           自动布局
         </div>
-        <div className={'toolbar-item'} onClick={() => {}}>
+        <div
+          className={'toolbar-item'}
+          onClick={() => {
+            window.open(
+              'https://github.com/yuyuyzl/le-calculator/blob/main/README.md',
+              '_blank'
+            );
+          }}
+        >
           帮助
         </div>
       </div>
