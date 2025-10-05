@@ -153,7 +153,12 @@ const Node = ({
               {node.percentage ? '%' : ''}
             </span>
             {compareSnapshot && compareSnapshot !== result && (
-              <span className="node-result-compare">
+              <span
+                className={
+                  'node-result-compare' +
+                  (result > compareSnapshot ? ' up' : ' down')
+                }
+              >
                 {result > compareSnapshot ? '↑' : '↓'}{' '}
                 {NumberUtils.formatNumber(result - compareSnapshot)}
                 {'/'}

@@ -166,12 +166,17 @@
 }
 
 .node-result .node-result-compare {
-  color: #d59696;
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;
   font-weight: 400;
   white-space: nowrap;
+}
+.node-result .node-result-compare.up {
+  color: #ff8a8a;
+}
+.node-result .node-result-compare.down {
+  color: #64c064;
 }
 
 .node-result .node-result-num {
