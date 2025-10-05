@@ -44,5 +44,5 @@ function calculateExpectedDamageMultiplier(initialReflexChance) {
 
 最小化：  
 ```javascript
-function (e){let a=e,t=0,l=1,c=0,n=0,o=1;for(;1e-6<o;){c+=l;var r=Math.min(1,a),i=1-r;t+=c*i*o,console.log(n,a,o,r,l,i*o,c),o*=r,n++,a=Math.max(.8*a,.66),n<=12&&(l=1+.12*n)}return t}
+function (a){let e=a,t=0,l=1,r=0,c=0,i=1;for(;1e-6<i;){r+=l;var n=Math.min(1,e);t+=r*(1-n)*i,i*=n,c++,e=Math.max(.8*e,.66),c<=12&&(l=1+.12*c)}return t}
 ```
