@@ -161,7 +161,11 @@ function App() {
       // 只按第一个 = 或 : 拆分
       const match = pastedData.match(/([^=:]+)[=:](.*)/);
       const title = match ? match[1].trim() : undefined;
-      const value = match ? match[2].trim() : undefined;
+      let value = match ? match[2].trim() : undefined;
+      const percentage = pastedData.endsWith('%');
+      if (percentage) {
+        value = value.replace('%', '');
+      }
       if (title && value) {
         const id = getId();
         setNodes(nodes => {
@@ -183,7 +187,7 @@ function App() {
               ...o,
               [id]: { x: mousePos.current.x - 50, y: mousePos.current.y - 30 },
             }));
-            return [...nodes, { title, value, id }];
+            return [...nodes, { title, value, id, percentage }];
           }
           return nodes;
         });

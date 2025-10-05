@@ -127,15 +127,16 @@ const Node = ({
         </div>
       </div>
       <div className="node-content">
-        <input
+        <textarea
           type="text"
           className="node-input"
+          rows={1}
           value={value}
           onChange={handleInputChange}
           placeholder="输入值..."
           onMouseDown={e => e.stopPropagation()}
           onKeyDown={e => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
               e.target.blur();
               onAutoSolve?.({ x, y });
             }
