@@ -81,7 +81,7 @@ const Node = ({
   };
 
   useLayoutEffect(() => {
-    if (isAutoLayout && node?.id) {
+    if (isAutoLayout) {
       const nodeElement = document.getElementById(
         'auto-layout-node-' + node.id
       );
