@@ -42,7 +42,7 @@ const hasSelection = () => {
       activeElement.contentEditable === 'true');
 
   if (isInputFocused) {
-    return false; // 如果聚焦在输入框内，不执行后续操作
+    return true; // 如果聚焦在输入框内，不执行后续操作
   }
 
   // 获取当前选中内容
