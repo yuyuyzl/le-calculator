@@ -411,6 +411,9 @@ function App() {
         <div className={'toolbar-item'} onClick={() => setAutoLayout(true)}>
           自动布局
         </div>
+        <div className={'toolbar-item'} onClick={() => {}}>
+          帮助
+        </div>
       </div>
     </div>
   );
