@@ -32,6 +32,27 @@ const extractUndefinedVariable = errorMessage => {
   }
   return null;
 };
+const hasSelection = () => {
+  // 检查是否聚焦在input或textarea内
+  const activeElement = document.activeElement;
+  const isInputFocused =
+    activeElement &&
+    (activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.contentEditable === 'true');
+
+  if (isInputFocused) {
+    return false; // 如果聚焦在输入框内，不执行后续操作
+  }
+
+  // 获取当前选中内容
+  const selection = window.getSelection();
+  const hasTextSelected =
+    selection.rangeCount > 0 && selection.toString().trim() !== '';
+
+  return hasTextSelected;
+};
+
 function App() {
   const [nodes, setNodes] = useState(() => {
     if (localStorage.getItem('nodes')) {
@@ -141,10 +162,7 @@ function App() {
 
   useEffect(() => {
     const handleCopy = () => {
-      // 获取当前光标
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0 && selection.direction !== 'none') {
-        console.log('有选中内容', selection);
+      if (hasSelection()) {
         return;
       }
       navigator.clipboard.writeText(exportNodes());
@@ -158,9 +176,7 @@ function App() {
   useEffect(() => {
     const handlePaste = e => {
       // 获取当前光标
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0 && selection.direction !== 'none') {
-        console.log('有选中内容', selection);
+      if (hasSelection()) {
         return;
       }
 
@@ -422,6 +438,13 @@ function App() {
                     }}
                   />
                 ))}
+              <Node
+                isAutoLayout={true}
+                node={{}}
+                onAutoPosition={() => {
+                  setAutoLayout(false);
+                }}
+              ></Node>
             </div>
           ))}
         </div>
