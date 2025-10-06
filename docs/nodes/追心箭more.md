@@ -1,6 +1,6 @@
 粘贴即用：  
 ```javascript
-((a)=>{let e=a,t=0,l=1,r=0,c=0,i=1;for(;1e-6<i;){r+=l;var n=Math.min(1,e);t+=r*(1-n)*i,i*=n,c++,e=Math.max(.8*e,.66),c<=12&&(l=1+.12*c)}return t})(追心箭反曲几率)
+追心箭反曲more=((a)=>{let e=a,t=0,l=1,r=0,c=0,i=1;for(;1e-6<i;){r+=l;var n=Math.min(1,e);t+=r*(1-n)*i,i*=n,c++,e=Math.max(.8*e,.66),c<=12&&(l=1+.12*c)}return t})(追心箭反曲几率)
 ```
 
 原函数：  
