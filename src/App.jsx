@@ -208,20 +208,20 @@ function App() {
         const match = line.match(/([^=:]+)[=:](.*)/);
         const title = match ? match[1].trim() : undefined;
         let value = match ? match[2].trim() : undefined;
-        const percentage =
-          value?.endsWith('%') ||
-          value?.includes('/*%*/') ||
-          value?.includes('//%');
-        if (percentage) {
-          value = value.replace('/*%*/', '').replace('//%', '');
-          value = value.replace(/%$/, '');
-        }
-        const addOne = value?.includes('/*+*/') || value?.includes('//+');
-        if (addOne) {
-          value = value.replace('/*+*/', '').replace('//+', '');
-        }
-        value = value.trim();
         if (title && value) {
+          const percentage =
+            value?.endsWith('%') ||
+            value?.includes('/*%*/') ||
+            value?.includes('//%');
+          if (percentage) {
+            value = value.replace('/*%*/', '').replace('//%', '');
+            value = value.replace(/%$/, '');
+          }
+          const addOne = value?.includes('/*+*/') || value?.includes('//+');
+          if (addOne) {
+            value = value.replace('/*+*/', '').replace('//+', '');
+          }
+          value = value.trim();
           const id = getId();
           setNodes(nodes => {
             // 如果 nodes 中已经存在 title
