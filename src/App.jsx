@@ -59,7 +59,8 @@ function App() {
       try {
         const ret = JSON.parse(localStorage.getItem('nodes'));
         ret.forEach(node => {
-          node.id = getId();
+          delete node.x;
+          delete node.y;
         });
         return ret;
       } catch {
@@ -68,9 +69,28 @@ function App() {
     }
     return [{ title: '基础伤害', value: '20', id: getId() }];
   });
-  const [nodePositions, setNodePositions] = useState({});
+  const [nodePositions, _setNodePositions] = useState(() => {
+    let pos = {};
+    if (localStorage.getItem('nodes')) {
+      try {
+        const ret = JSON.parse(localStorage.getItem('nodes'));
+        ret.forEach(node => {
+          pos[node.id] = { x: node.x, y: node.y };
+        });
+      } catch {
+        // empty
+      }
+    }
+    return pos;
+  });
+  const [repositionState, setRepositionState] = useState(0);
+  const repositionRef = useRef(false);
+  const setNodePositions = useCallback(pos => {
+    _setNodePositions(pos);
+    repositionRef.current = true;
+  }, []);
   const [compareSnapshot, setCompareSnapshot] = useState();
-  const [autoLayout, setAutoLayout] = useState(true);
+  const [autoLayout, setAutoLayout] = useState(false);
   const historyNodes = useRef([]);
   const mousePos = useRef({ x: 0, y: 0 });
   const undo = useCallback(() => {
@@ -136,7 +156,15 @@ function App() {
   }, [nodes, rounds]);
 
   useEffect(() => {
-    localStorage.setItem('nodes', JSON.stringify(nodes));
+    if (!nodes) return;
+    if (autoLayout) return;
+    repositionRef.current = false;
+    const _nodes = JSON.parse(JSON.stringify(nodes));
+    _nodes.forEach(node => {
+      node.x = nodePositions[node.id]?.x;
+      node.y = nodePositions[node.id]?.y;
+    });
+    localStorage.setItem('nodes', JSON.stringify(_nodes));
     if (
       historyNodes.current[historyNodes.current.length - 1] ===
       JSON.stringify(nodes)
@@ -144,7 +172,7 @@ function App() {
       return;
     }
     historyNodes.current = [...historyNodes.current, JSON.stringify(nodes)];
-  }, [nodes]);
+  }, [nodes, repositionState, autoLayout]);
 
   useEffect(() => {
     const handleKeyDown = e => {
@@ -192,11 +220,22 @@ function App() {
       // 在这里处理粘贴的数据
       // 例如：解析JSON数据并更新nodes
       try {
-        const parsedData = JSON.parse(pastedData);
-        if (Array.isArray(parsedData)) {
-          setNodes(parsedData);
-          setNodePositions({});
-          setAutoLayout(true);
+        const loadedNodes = JSON.parse(pastedData);
+        if (Array.isArray(loadedNodes)) {
+          let pos = {};
+          try {
+            loadedNodes.forEach(node => {
+              pos[node.id] = { x: node.x, y: node.y };
+            });
+          } catch {
+            // empty
+          }
+          loadedNodes.forEach(node => {
+            delete node.x;
+            delete node.y;
+          });
+          setNodes(loadedNodes);
+          setNodePositions(pos);
         }
         return;
       } catch {
@@ -262,7 +301,12 @@ function App() {
   }, []);
 
   const onSave = () => {
-    const dataStr = JSON.stringify(nodes, null, 2);
+    const _nodes = JSON.parse(JSON.stringify(nodes));
+    _nodes.forEach(node => {
+      node.x = nodePositions[node.id]?.x;
+      node.y = nodePositions[node.id]?.y;
+    });
+    const dataStr = JSON.stringify(_nodes, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -284,9 +328,20 @@ function App() {
         reader.onload = e => {
           try {
             const loadedNodes = JSON.parse(e.target.result);
+            let pos = {};
+            try {
+              loadedNodes.forEach(node => {
+                pos[node.id] = { x: node.x, y: node.y };
+              });
+            } catch {
+              // empty
+            }
+            loadedNodes.forEach(node => {
+              delete node.x;
+              delete node.y;
+            });
             setNodes(loadedNodes);
-            setNodePositions({});
-            setAutoLayout(true);
+            setNodePositions(pos);
           } catch (error) {
             alert('文件格式错误，请选择有效的JSON文件');
           }
@@ -313,6 +368,10 @@ function App() {
       onMouseMove={e => {
         mousePos.current = { x: e.pageX, y: e.pageY };
       }}
+      onMouseUp={() => {
+        if (repositionRef.current) setRepositionState(o => o + 1);
+        repositionRef.current = false;
+      }}
       onDoubleClick={e => {
         const id = getId();
         setNodePositions(o => ({
@@ -331,8 +390,8 @@ function App() {
         <Node
           key={node.id}
           node={node}
-          x={nodePositions[node.id]?.x ?? 0}
-          y={nodePositions[node.id]?.y ?? 0}
+          x={nodePositions[node.id]?.x ?? 100 + 100 * Math.floor(index / 5)}
+          y={nodePositions[node.id]?.y ?? 100 + 100 * (index % 5)}
           setX={x =>
             setNodePositions(o => ({ ...o, [node.id]: { ...o[node.id], x } }))
           }
