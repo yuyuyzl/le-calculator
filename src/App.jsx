@@ -225,7 +225,7 @@ function App() {
           let pos = {};
           try {
             loadedNodes.forEach(node => {
-              pos[node.id] = { x: node.x, y: node.y };
+              if (node.x !== undefined) pos[node.id] = { x: node.x, y: node.y };
             });
           } catch {
             // empty
@@ -236,6 +236,9 @@ function App() {
           });
           setNodes(loadedNodes);
           setNodePositions(pos);
+          if (Object.keys(pos).length === 0) {
+            setAutoLayout(true);
+          }
         }
         return;
       } catch {
@@ -331,7 +334,8 @@ function App() {
             let pos = {};
             try {
               loadedNodes.forEach(node => {
-                pos[node.id] = { x: node.x, y: node.y };
+                if (node.x !== undefined)
+                  pos[node.id] = { x: node.x, y: node.y };
               });
             } catch {
               // empty
@@ -342,6 +346,9 @@ function App() {
             });
             setNodes(loadedNodes);
             setNodePositions(pos);
+            if (Object.keys(pos).length === 0) {
+              setAutoLayout(true);
+            }
           } catch (error) {
             alert('文件格式错误，请选择有效的JSON文件');
           }
