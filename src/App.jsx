@@ -158,7 +158,7 @@ function App() {
         // empty
       }
     }
-    return [{ title: '基础伤害', value: '20', id: getId() }];
+    return [];
   });
   const [nodePositions, _setNodePositions] = useState(() => {
     let pos = {};
@@ -525,6 +525,14 @@ function App() {
         });
       }}
     >
+      {nodes.length === 0 && (
+        <div className="empty-nodes-hint" aria-hidden="true">
+          <b>双击空白处添加新节点</b>
+          <p>双击节点标题修改名称</p>
+          <p>输入框内可直接引用其他节点名称</p>
+          <p>左上角可以查看更多帮助</p>
+        </div>
+      )}
       {nodes.map((node, index) => (
         <Node
           key={node.id}
