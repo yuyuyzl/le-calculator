@@ -17,6 +17,97 @@ const scopeEval = function (source, scope = {}) {
   );
   return [scope, result];
 };
+
+/** 与主流程一致：对 nodes 深拷贝后迭代求值，返回各 title 的最终数值映射等 */
+function computeNodeGraph(nodesSource) {
+  let _nodes = JSON.parse(JSON.stringify(nodesSource));
+  let nodeConsts = {};
+  let nodeErrors = {};
+  let nodeRounds = {};
+  let dirty = true;
+  let itCount = 0;
+  try {
+    while (itCount < 10000 && dirty) {
+      let itIndex = 0;
+      let newConsts = {};
+      dirty = false;
+      _nodes.forEach(node => {
+        try {
+          let [, res] = scopeEval(node.value, nodeConsts);
+          if (res !== undefined && res !== node.value) {
+            if (node.percentage) {
+              res = res / 100;
+            }
+            if (node.addOne) {
+              res = res + 1;
+            }
+            dirty = true;
+            node.value = res;
+            newConsts[node.title] = res;
+            nodeErrors[node.title] = undefined;
+            nodeRounds[node.title] = [itCount, itIndex];
+            itIndex++;
+          }
+        } catch (e) {
+          nodeErrors[node.title] = e;
+        }
+      });
+      nodeConsts = { ...nodeConsts, ...newConsts };
+      itCount++;
+    }
+    return { nodeConsts, nodeErrors, nodeRounds, itCount };
+  } catch (e) {
+    return { nodeConsts, nodeErrors, nodeRounds, itCount };
+  }
+}
+
+function graphResultsDiffer(a, b) {
+  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+  for (const k of keys) {
+    if ((a || {})[k] !== (b || {})[k]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Fork 算式中含独立标识符 X 时，用该节点基线数值替换后再参与全图计算 */
+function resolveForkNodeValue(forkText, baselineResultForTitle) {
+  const text = String(forkText ?? '');
+  if (!/\bX\b/.test(text)) {
+    return text;
+  }
+  const replacement =
+    baselineResultForTitle !== undefined && baselineResultForTitle !== null
+      ? String(baselineResultForTitle)
+      : 'undefined';
+  return text.replace(/\bX\b/g, replacement);
+}
+
+/**
+ * 对每个「有 fork 的节点」：一维 = 原值(main) + 每个 fork，再对所有维做笛卡尔积。
+ * 组合中每项为 { mode:'main', owner } 或 { mode:'fork', owner, fork }。
+ */
+function buildForkCartesianCombos(forkingNodes) {
+  if (forkingNodes.length === 0) {
+    return [];
+  }
+  let combos = [[]];
+  for (const owner of forkingNodes) {
+    const choices = [
+      { mode: 'main', owner },
+      ...(owner.forks || []).map(fork => ({ mode: 'fork', owner, fork })),
+    ];
+    const next = [];
+    for (const prefix of combos) {
+      for (const choice of choices) {
+        next.push([...prefix, choice]);
+      }
+    }
+    combos = next;
+  }
+  return combos;
+}
 const extractUndefinedVariable = errorMessage => {
   const patterns = [
     /ReferenceError: ([^ ]+) is not defined/,
@@ -90,7 +181,10 @@ function App() {
     repositionRef.current = true;
   }, []);
   const [compareSnapshot, setCompareSnapshot] = useState();
+  /** 打开快照时记录的节点与位置，用于关闭时选择恢复 */
+  const snapshotBaselineRef = useRef(null);
   const [autoLayout, setAutoLayout] = useState(false);
+  const [highlightForkComboKey, setHighlightForkComboKey] = useState(null);
   const historyNodes = useRef([]);
   const mousePos = useRef({ x: 0, y: 0 });
   const undo = useCallback(() => {
@@ -101,48 +195,58 @@ function App() {
       );
     }
   }, [historyNodes]);
-  const [result, error, rounds, maxRound] = useMemo(() => {
-    let _nodes = JSON.parse(JSON.stringify(nodes));
-    let nodeConsts = {};
-    let nodeErrors = {};
-    let nodeRounds = {};
-    let dirty = true;
-    let itCount = 0;
-    try {
-      while (itCount < 10000 && dirty) {
-        let itIndex = 0;
-        let newConsts = {};
-        dirty = false;
-        _nodes.forEach(node => {
-          try {
-            let [, res] = scopeEval(node.value, nodeConsts);
-            if (res !== undefined && res !== node.value) {
-              if (node.percentage) {
-                res = res / 100;
-              }
-              if (node.addOne) {
-                res = res + 1;
-              }
-              dirty = true;
-              node.value = res;
-              newConsts[node.title] = res;
-              nodeErrors[node.title] = undefined;
-              nodeRounds[node.title] = [itCount, itIndex];
-              itIndex++;
-            }
-          } catch (e) {
-            nodeErrors[node.title] = e;
-            // empty
+  const [result, error, rounds, maxRound, forkResultRowsByNodeId] =
+    useMemo(() => {
+      const baseline = computeNodeGraph(nodes);
+      const forkResultRowsByNodeId = {};
+
+      const forkingNodes = nodes.filter(n => (n.forks || []).length > 0);
+      const forkCombos = buildForkCartesianCombos(forkingNodes);
+
+      for (const combo of forkCombos) {
+        const variantNodes = JSON.parse(JSON.stringify(nodes));
+        for (const choice of combo) {
+          if (choice.mode !== 'fork') {
+            continue;
           }
-        });
-        nodeConsts = { ...nodeConsts, ...newConsts };
-        itCount++;
+          const target = variantNodes.find(n => n.id === choice.owner.id);
+          if (target) {
+            target.value = resolveForkNodeValue(
+              choice.fork.value,
+              baseline.nodeConsts[choice.owner.title]
+            );
+          }
+        }
+        const variant = computeNodeGraph(variantNodes);
+        if (graphResultsDiffer(baseline.nodeConsts, variant.nodeConsts)) {
+          const comboKey = combo
+            .map(c =>
+              c.mode === 'main'
+                ? `${c.owner.id}:main`
+                : `${c.owner.id}:${c.fork.id}`
+            )
+            .join('+');
+          nodes.forEach(n => {
+            if (!forkResultRowsByNodeId[n.id]) {
+              forkResultRowsByNodeId[n.id] = [];
+            }
+            forkResultRowsByNodeId[n.id].push({
+              forkId: comboKey,
+              result: variant.nodeConsts[n.title],
+              error: variant.nodeErrors[n.title],
+            });
+          });
+        }
       }
-      return [nodeConsts, nodeErrors, nodeRounds, itCount];
-    } catch (e) {
-      return [nodeConsts, nodeErrors, nodeRounds, itCount];
-    }
-  }, [nodes]);
+
+      return [
+        baseline.nodeConsts,
+        baseline.nodeErrors,
+        baseline.nodeRounds,
+        baseline.itCount,
+        forkResultRowsByNodeId,
+      ];
+    }, [nodes]);
 
   const exportNodes = useCallback(() => {
     return nodes
@@ -244,10 +348,22 @@ function App() {
       } catch {
         // empty
       }
-      // 只按第一个 = 或 : 拆分
-      const lines = pastedData.split('\n');
+      // 只按第一个 = 或 : 拆分；无法拆分的行合并到上一行（保留 \n）
+      const rawLines = pastedData.split('\n');
+      const lines = [];
+      for (const line of rawLines) {
+        if (lines.length === 0) {
+          lines.push(line);
+          continue;
+        }
+        if (line.match(/([^=:]+)[=:](.*)/)) {
+          lines.push(line);
+        } else {
+          lines[lines.length - 1] += '\n' + line;
+        }
+      }
       lines.forEach((line, index) => {
-        const match = line.match(/([^=:]+)[=:](.*)/);
+        const match = line.match(/([^=:]+)[=:]([\s\S]*)/);
         const title = match ? match[1].trim() : undefined;
         let value = match ? match[2].trim() : undefined;
         if (title && value) {
@@ -365,9 +481,25 @@ function App() {
   };
 
   const onCompareSnapshot = () => {
-    setCompareSnapshot(o =>
-      o ? undefined : JSON.parse(JSON.stringify(result))
-    );
+    if (compareSnapshot) {
+      if (window.confirm('要保留当前内容吗')) {
+        setCompareSnapshot(undefined);
+      } else {
+        const baseline = snapshotBaselineRef.current;
+        if (baseline) {
+          setNodes(JSON.parse(JSON.stringify(baseline.nodes)));
+          setNodePositions(JSON.parse(JSON.stringify(baseline.nodePositions)));
+        }
+        setCompareSnapshot(undefined);
+      }
+      snapshotBaselineRef.current = null;
+    } else {
+      snapshotBaselineRef.current = {
+        nodes: JSON.parse(JSON.stringify(nodes)),
+        nodePositions: JSON.parse(JSON.stringify(nodePositions)),
+      };
+      setCompareSnapshot(JSON.parse(JSON.stringify(result)));
+    }
   };
   return (
     <div
@@ -409,6 +541,9 @@ function App() {
           error={error?.[node.title]}
           rounds={rounds?.[node.title]}
           compareSnapshot={compareSnapshot?.[node.title]}
+          forkResultRows={forkResultRowsByNodeId[node.id]}
+          highlightForkComboKey={highlightForkComboKey}
+          onForkResultRouteHover={setHighlightForkComboKey}
           onAutoSolve={({ x, y }) => {
             const tempResult = JSON.parse(JSON.stringify(result));
             const toAdd = [];
@@ -479,6 +614,44 @@ function App() {
               return ret;
             })
           }
+          onFork={() => {
+            setNodes(nodes => {
+              const ret = [...nodes];
+              const forkId = getId();
+              const forks = [
+                ...(ret[index].forks || []),
+                { id: forkId, value: '' },
+              ];
+              ret[index] = { ...ret[index], forks };
+              return ret;
+            });
+          }}
+          onForkChange={(forkId, forkValue) => {
+            setNodes(nodes => {
+              const ret = [...nodes];
+              const forks = (ret[index].forks || []).map(f =>
+                f.id === forkId ? { ...f, value: forkValue } : f
+              );
+              ret[index] = { ...ret[index], forks };
+              return ret;
+            });
+          }}
+          onForkRemove={forkId => {
+            setNodes(nodes => {
+              const ret = [...nodes];
+              const forks = (ret[index].forks || []).filter(
+                f => f.id !== forkId
+              );
+              const next = { ...ret[index] };
+              if (forks.length === 0) {
+                delete next.forks;
+              } else {
+                next.forks = forks;
+              }
+              ret[index] = next;
+              return ret;
+            });
+          }}
           onRemove={() => {
             setNodes(nodes => {
               return nodes.slice(0, index).concat(nodes.slice(index + 1));
@@ -492,21 +665,68 @@ function App() {
             <div className="nodes-row" key={index}>
               {nodes
                 .filter(node => rounds?.[node.title]?.[0] === index)
-                .map(node => (
-                  <Node
-                    isAutoLayout={true}
-                    key={node.id}
-                    node={node}
-                    result={result?.[node.title]}
-                    error={error?.[node.title]}
-                    rounds={rounds?.[node.title]}
-                    compareSnapshot={compareSnapshot?.[node.title]}
-                    onAutoPosition={({ x, y }) => {
-                      setNodePositions(o => ({ ...o, [node.id]: { x, y } }));
-                      setAutoLayout(false);
-                    }}
-                  />
-                ))}
+                .map(node => {
+                  const idx = nodes.findIndex(n => n.id === node.id);
+                  return (
+                    <Node
+                      isAutoLayout={true}
+                      key={node.id}
+                      node={node}
+                      result={result?.[node.title]}
+                      error={error?.[node.title]}
+                      rounds={rounds?.[node.title]}
+                      compareSnapshot={compareSnapshot?.[node.title]}
+                      forkResultRows={forkResultRowsByNodeId[node.id]}
+                      highlightForkComboKey={highlightForkComboKey}
+                      onForkResultRouteHover={setHighlightForkComboKey}
+                      onAutoPosition={({ x, y }) => {
+                        setNodePositions(o => ({ ...o, [node.id]: { x, y } }));
+                        setAutoLayout(false);
+                      }}
+                      onFork={() => {
+                        if (idx < 0) return;
+                        setNodes(nodes => {
+                          const ret = [...nodes];
+                          const forkId = getId();
+                          const forks = [
+                            ...(ret[idx].forks || []),
+                            { id: forkId, value: '' },
+                          ];
+                          ret[idx] = { ...ret[idx], forks };
+                          return ret;
+                        });
+                      }}
+                      onForkChange={(forkId, forkValue) => {
+                        if (idx < 0) return;
+                        setNodes(nodes => {
+                          const ret = [...nodes];
+                          const forks = (ret[idx].forks || []).map(f =>
+                            f.id === forkId ? { ...f, value: forkValue } : f
+                          );
+                          ret[idx] = { ...ret[idx], forks };
+                          return ret;
+                        });
+                      }}
+                      onForkRemove={forkId => {
+                        if (idx < 0) return;
+                        setNodes(nodes => {
+                          const ret = [...nodes];
+                          const forks = (ret[idx].forks || []).filter(
+                            f => f.id !== forkId
+                          );
+                          const next = { ...ret[idx] };
+                          if (forks.length === 0) {
+                            delete next.forks;
+                          } else {
+                            next.forks = forks;
+                          }
+                          ret[idx] = next;
+                          return ret;
+                        });
+                      }}
+                    />
+                  );
+                })}
               <Node
                 isAutoLayout={true}
                 node={{}}
